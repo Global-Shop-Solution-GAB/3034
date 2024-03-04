@@ -1,0 +1,203 @@
+Program.Sub.ScreenSU.Start
+gui.Form1..create
+gui.Form1..caption("Form1")
+gui.Form1..size(9600,6375)
+gui.Form1..minx(0)
+gui.Form1..miny(0)
+gui.Form1..position(0,0)
+gui.Form1..alwaysontop(False)
+gui.Form1..fontname("Arial")
+gui.Form1..fontsize(8)
+gui.Form1..forecolor(0)
+gui.Form1..fontstyle(,,,,)
+gui.Form1..BackColor(-2147483633)
+gui.Form1..controlbox(True)
+gui.Form1..maxbutton(True)
+gui.Form1..minbutton(True)
+gui.Form1..mousepointer(0)
+gui.Form1..moveable(True)
+gui.Form1..sizeable(True)
+gui.Form1..ShowInTaskBar(True)
+gui.Form1..titlebar(True)
+gui.Form1.cmd1.create(button)
+gui.Form1.cmd1.caption("BDF")
+gui.Form1.cmd1.visible(True)
+gui.Form1.cmd1.size(855,375)
+gui.Form1.cmd1.zorder(0)
+gui.Form1.cmd1.position(3100,2900)
+gui.Form1.cmd1.enabled(True)
+gui.Form1.cmd1.fontname("Arial")
+gui.Form1.cmd1.fontsize(8)
+gui.Form1.cmd1.defaultvalue("")
+gui.Form1.cmd1.controlgroup(0)
+gui.Form1.cmd2.create(button)
+gui.Form1.cmd2.caption("create")
+gui.Form1.cmd2.visible(True)
+gui.Form1.cmd2.size(855,375)
+gui.Form1.cmd2.zorder(0)
+gui.Form1.cmd2.position(4500,2900)
+gui.Form1.cmd2.enabled(True)
+gui.Form1.cmd2.fontname("Arial")
+gui.Form1.cmd2.fontsize(8)
+gui.Form1.cmd2.defaultvalue("")
+gui.Form1.cmd2.controlgroup(0)
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+
+'RAN 11/3/2015
+'Company Name S.I.P., Inc. of Delaware
+'Title:Material Cert attachments on Inventory transfers
+
+'Hook 28072
+
+'Error Handling
+F.Intrinsic.Control.SetErrorHandler("Load_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.iRowCnt.Declare(Long)
+V.Local.i.Declare(Long)
+V.Local.sReadRow.Declare(String)
+V.Local.sSel.Declare(String)
+V.Global.sBin1.Declare(String)
+V.Global.sLot2.Declare(String)
+V.Global.sHeat3.Declare(String)
+V.Global.sSerial4.Declare(String)
+V.Local.sTLink.Declare(String)
+V.Local.sFLink.Declare(String)
+V.Local.RetLinkTID.Declare(Long)
+V.Local.RetLinkFID.Declare(Long)
+V.Local.bRet.Declare(Boolean)
+
+
+
+'Loads name of BDF and ID into memory
+F.Intrinsic.BDF.Load("AUX001","AUX001")
+F.Intrinsic.BDF.Clone("AUX001","Clone")
+
+F.Intrinsic.BDF.ReadRowCount("AUX001",V.Local.iRowCnt)
+
+F.Intrinsic.Math.Sub(V.Local.iRowCnt,1,V.Local.iRowCnt)
+
+F.Intrinsic.Control.For(V.Local.i,0,V.Local.iRowCnt,1)
+
+	F.Intrinsic.BDF.ReadRow("AUX001",V.Local.i,V.Local.sReadRow)
+	'String delimiter(|~|) splits row from a string into array
+	F.Intrinsic.String.Split(V.Local.sReadRow,"|~|",V.Local.sReadRow)
+	V.Local.sSel.Set(V.Local.sReadRow(0).Trim)
+	F.Intrinsic.Control.If(V.Local.sSel,=,"Y")
+
+		V.Global.sLot2.Set(V.Local.sReadRow(2).Trim)
+		V.Global.sHeat3.Set(V.Local.sReadRow(3).Trim)
+		V.Global.sSerial4.Set(V.Local.sReadRow(4).Trim)
+
+		F.Intrinsic.Control.CallSub(Create_link,"Part",Variable.Passed.000005,"Loc",Variable.Passed.000008,"Bin",V.Local.sReadRow(1).Trim)
+		V.Local.sFLink.set(V.Args.RetVar)
+		F.Intrinsic.Control.CallSub(Create_link,"Part",Variable.Passed.000141,"Loc",Variable.Passed.000011,"Bin",Variable.Passed.000012)
+		V.Local.sTLink.set(V.Args.RetVar)
+
+		Function.Global.DocumentControl.GetLinkID(V.Local.sFLink,"00031",V.Local.RetLinkFID)
+		F.Intrinsic.Control.If(V.Local.RetLinkFID,<>,-1)
+			F.Global.DocumentControl.CreateReference(V.Local.sTLink,"00031",V.Local.RetLinkTID)
+			Function.Global.DocumentControl.Copy(V.Local.RetLinkFID,V.Local.RetLinkTID,V.Local.bRet)
+		F.Intrinsic.Control.Endif
+	F.Intrinsic.Control.Endif
+F.Intrinsic.Control.Next(V.Local.i)
+
+
+F.Intrinsic.Control.ExitSub
+'Error Handling
+F.Intrinsic.Control.Label("Load_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+Program.Sub.Main.End
+
+Program.Sub.create_link.Start
+F.Intrinsic.Control.SetErrorHandler("create_link_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+
+V.local.stemp.Declare(String)
+V.local.sLink.Declare(String)
+V.local.sSQL.Declare(String)
+
+
+'create link
+
+'part
+V.local.stemp.set(V.Args.Part)
+F.Intrinsic.String.RPad(V.local.stemp," ",20,V.local.stemp)
+F.Intrinsic.String.Left(V.local.stemp,20,V.Local.sLink)
+
+'v.local.sLink.set(loc)
+V.local.stemp.set(V.Args.Loc)
+F.Intrinsic.String.RPad(V.local.stemp," ",2,V.local.stemp)
+F.Intrinsic.String.Left(V.Local.stemp,2,V.Local.stemp)
+
+F.Intrinsic.String.build("{0}{1}",V.Local.sLink,V.Local.stemp,V.Local.sLink)
+
+'v.local.sLink.set(lot)
+V.local.stemp.set(V.Global.sLot2)
+F.Intrinsic.String.RPad(V.local.stemp," ",15,V.local.stemp)
+F.Intrinsic.String.Left(V.Local.stemp,15,V.Local.stemp)
+
+F.Intrinsic.String.build("{0}{1}",V.Local.sLink,V.Local.stemp,V.Local.sLink)
+
+'bin
+V.local.stemp.set(V.Args.bin)
+F.Intrinsic.String.RPad(V.local.stemp," ",6,V.local.stemp)
+F.Intrinsic.String.Left(V.Local.stemp,6,V.Local.stemp)
+
+F.Intrinsic.String.build("{0}{1}",V.Local.sLink,V.Local.stemp,V.Local.sLink)
+
+
+'v.local.sLink.set(heat)
+V.local.stemp.set(V.Global.sHeat3)
+F.Intrinsic.String.RPad(V.local.stemp," ",15,V.local.stemp)
+F.Intrinsic.String.Left(V.Local.stemp,15,V.Local.stemp)
+
+F.Intrinsic.String.build("{0}{1}",V.Local.sLink,V.Local.stemp,V.Local.sLink)
+
+'v.local.sLink.set(serial)
+V.local.stemp.set(V.Global.sSerial4)
+F.Intrinsic.String.RPad(V.local.stemp," ",30,V.local.stemp)
+F.Intrinsic.String.Left(V.Local.stemp,30,V.Local.stemp)
+
+F.Intrinsic.String.build("{0}{1}",V.Local.sLink,V.Local.stemp,V.Local.sLink)
+
+V.local.stemp.Set("")
+F.Intrinsic.String.RPad(V.local.stemp," ",37,V.local.stemp)
+F.Intrinsic.String.build("{0}{1}",V.Local.sLink,V.Local.stemp,V.Local.sLink)
+
+
+Function.Intrinsic.Variable.AddRV("RetVar",V.Local.sLink)
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("create_link_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: Onhand.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.create_link.End
+
+Program.Sub.Comments.Start
+${$0$}$Onhand$}$RAN$}$10/28/2015$}$False
+Program.Sub.Comments.End
+
